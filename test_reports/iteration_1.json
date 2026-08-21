@@ -1,0 +1,51 @@
+{
+  "summary": "First-finish smoke test of Handshake scheduling MVP. Backend: auth (signup/login/me/wrong-pw 401), host settings GET/PATCH, public host slots, open-access booking with atomic 409 double-booking prevention, cancel-by-token flow, rebooking after cancel, curated offer create/get/accept + second-accept rejection (400), booking_mode=curated_offer blocks open booking (403), host bookings list, and rate limiting (429s observed) all pass. Frontend: landing, signup->/settings redirect, dashboard (booking-url, copy-link, mode-toggle, mode-label), public booking page (tz-select + slot buttons + public-email + public-confirm), and create-offer page all render with required data-testids and integrate with backend via httpOnly cookies.",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "POST /api/auth/signup returns user+token, sets cookie, auto-provisions booking_slug and Mon-Fri 09:00-17:00 availability",
+    "POST /api/auth/login: correct pw 200, wrong pw 401",
+    "GET /api/auth/me returns user from cookie",
+    "GET/PATCH /api/host/settings persists changes",
+    "GET /api/public/host/{slug} returns available_slots as ISO 8601 UTC {start,end} pairs",
+    "POST /api/public/host/{slug}/book: 1st booking 200 with booking_id+cancel_token",
+    "Second booking of same slot returns 409 'Slot already booked' (atomic double-booking prevention)",
+    "GET /api/public/booking/by-token/{token} returns booking info; POST cancel/{token} returns ok:true",
+    "Rebooking same slot after cancel succeeds (slot freed correctly)",
+    "POST /api/host/offers returns offer_id + signed offer_url + token",
+    "GET /api/public/offer/{token} returns proposed_slots + host + expires_at",
+    "POST /api/public/offer/accept with valid slot creates booking; second accept returns 400 'Offer no longer available'",
+    "When booking_mode=curated_offer, POST /api/public/host/{slug}/book returns 403 'Public booking disabled by host'",
+    "GET /api/host/bookings returns 3 bookings for host including cancelled + booked statuses",
+    "Rate limiting on booking endpoint enforced (429 observed within same-IP burst)",
+    "Frontend landing page: landing-brand + hero-cta-signup visible",
+    "Frontend /signup: form submits and redirects to /settings; settings-save button visible",
+    "Frontend /dashboard: booking-url, copy-link, mode-toggle, mode-label all render; mode label shows 'Open Access'",
+    "Frontend /b/{slug}: tz-select visible, 217 slot- buttons rendered, public-email input visible after slot click",
+    "Frontend /offers/new: offer-invitee-email visible, 153 offer-slot- buttons rendered"
+  ],
+  "failed": [
+    {
+      "area": "Frontend /settings testids",
+      "issue": "data-testid='settings-tz' and 'settings-duration' not detected as visible via Playwright locator (settings-save is visible so page loads fine). Likely they are nested inside custom Select components on non-native <input> so is_visible check misses them, or the testid is on a wrapper not the interactive element.",
+      "evidence": "Settings: tz=False, duration=False, save=True",
+      "priority": "LOW"
+    },
+    {
+      "area": "Frontend public booking confirmation not verified in UI",
+      "issue": "UI booking-confirmed screen not reached because backend returned 429 rate-limit (same IP already exhausted by prior backend tests). Backend flow itself verified separately. Not a code bug — testing artifact.",
+      "evidence": "CONSOLE 429 on POST /api/public/host/{slug}/book; booking-confirmed visible=False",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "Optional: ensure data-testid='settings-tz' and 'settings-duration' are placed on the actual visible trigger/input elements (not on hidden inputs) so automated tests can locate them",
+    "No blocking issues — MVP is ready for first-finish"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "~90%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": {
+    "mocked": "Email delivery mocked (logs to backend stdout). Not tested.",
+    "credentials": "Fresh accounts created via /api/auth/signup per /app/memory/test_credentials.md pattern (example.com domain)."
+  }
+}

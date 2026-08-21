@@ -1,0 +1,182 @@
+@import url("https://fonts.googleapis.com/css2?family=Baloo+Chettan+2:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap");
+
+/* Base — warm rural palette, chunky Malayalam-friendly type, big tap targets. */
+:root {
+  --bg: #F8F5EF;
+  --surface: #FFFFFF;
+  --surface-2: #F1EBDD;
+  --ink: #1F1D18;
+  --ink-2: #5A5850;
+  --border: #E1DBCB;
+  --available: #157F3B;
+  --available-bg: #E5F3EA;
+  --booked: #A6A29A;
+  --booked-bg: #EDEAE2;
+  --selected: #E8B23A;
+  --selected-bg: #FFF4D6;
+  --primary: #157F3B;
+  --primary-hover: #0F6B31;
+  --danger: #B2402A;
+  --danger-hover: #922F1F;
+  --accent: #E8B23A;
+}
+
+.App {
+  font-family: "Baloo Chettan 2", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+}
+
+.font-serif { font-family: "Baloo Chettan 2", ui-serif, Georgia, serif; }
+
+.ea-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: 0 6px 24px rgba(31,29,24,0.05);
+}
+
+.ea-input, .ea-select, textarea.ea-input {
+  border: 2px solid var(--border);
+  background: #FFFFFF;
+  border-radius: 0.9rem;
+  padding: 0.95rem 1.1rem;
+  width: 100%;
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-family: inherit;
+  min-height: 52px;
+  transition: border-color 0.2s ease;
+}
+.ea-input:focus, .ea-select:focus, textarea.ea-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.ea-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Buttons — min 48px tap targets */
+.ea-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0.85rem 1.4rem;
+  border-radius: 0.9rem;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+.ea-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.ea-btn-primary { background: var(--primary); color: #FFFFFF; }
+.ea-btn-primary:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 8px 22px rgba(21,127,59,0.28); }
+.ea-btn-secondary { background: #FFFFFF; color: var(--ink); border-color: var(--border); }
+.ea-btn-secondary:hover:not(:disabled) { background: var(--surface-2); }
+.ea-btn-danger { background: var(--danger); color: #FFFFFF; }
+.ea-btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
+.ea-btn-wa {
+  background: #25D366; color: #FFFFFF;
+  font-size: 1.15rem;
+  padding: 1.1rem 1.4rem;
+  min-height: 60px;
+}
+.ea-btn-wa:hover:not(:disabled) { background: #1EBE5B; transform: translateY(-1px); }
+
+/* Slot cards */
+.slot-card {
+  border-radius: 1rem;
+  padding: 1rem 0.9rem;
+  border: 2px solid var(--border);
+  background: #FFFFFF;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.15rem;
+  font-family: inherit;
+}
+.slot-available {
+  background: var(--available-bg);
+  border-color: var(--available);
+  color: var(--available);
+}
+.slot-available:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(21,127,59,0.18); }
+.slot-booked {
+  background: var(--booked-bg);
+  border-color: var(--border);
+  color: var(--booked);
+  cursor: not-allowed;
+}
+.slot-selected {
+  background: var(--selected-bg) !important;
+  border-color: var(--selected) !important;
+  color: #6B4A00 !important;
+  box-shadow: 0 6px 20px rgba(232,178,58,0.25);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.pill-waiting { background: #FFF4D6; color: #6B4A00; }
+.pill-in { background: #E5F3EA; color: #157F3B; }
+.pill-done { background: #EDEAE2; color: #5A5850; }
+.pill-cancel { background: #FBE8E4; color: #B2402A; }
+.pill-noshow { background: #FBE8E4; color: #B2402A; }
+
+.ea-fade { animation: eaFade 0.35s ease both; }
+@keyframes eaFade { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
+
+/* Day chip strip */
+.day-chip {
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.9rem;
+  border: 2px solid var(--border);
+  background: #FFFFFF;
+  min-width: 66px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.day-chip.selected { background: var(--ink); color: #FFFFFF; border-color: var(--ink); }
+.day-chip.disabled { background: var(--surface-2); color: #A6A39E; cursor: not-allowed; text-decoration: line-through; }
+
+/* Table for ledger — desktop grid + mobile card */
+.ledger-row { display: grid; grid-template-columns: 60px 90px 1fr 100px 140px 130px; gap: 0.75rem; align-items: center; padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); }
+.ledger-head { font-weight: 700; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+@media (max-width: 720px) {
+  .ledger-head { display: none !important; }
+  .ledger-row {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    grid-template-areas:
+      "tok name act"
+      "tok meta act";
+    align-items: center;
+    row-gap: 0.15rem;
+    column-gap: 0.75rem;
+    padding: 0.8rem 0.9rem;
+  }
+  .ledger-row > *:nth-child(1) { grid-area: tok; font-size: 1.15rem; }
+  .ledger-row > *:nth-child(2) { display: none; }
+  .ledger-row > *:nth-child(3) { grid-area: name; min-width: 0; }
+  .ledger-row .col-hide-sm { display: none; }
+  .ledger-row > *:nth-child(6) { grid-area: act; }
+}

@@ -1,0 +1,133 @@
+{
+  "theme": "light",
+  "typography": {
+    "headings": {
+      "family": "Cormorant Garamond",
+      "weights": ["400", "500", "600"],
+      "usage": "Use for all main H1-H3 headings. Gives the app a human, editorial, professional consultant feel. Do NOT use Inter, Roboto, or Space Grotesk. Always use tight letter spacing (tracking-tight) for large headers.",
+      "scales": {
+        "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter leading-none",
+        "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight",
+        "h3": "text-xl sm:text-2xl tracking-tight"
+      }
+    },
+    "body": {
+      "family": "Manrope",
+      "weights": ["400", "500", "600"],
+      "usage": "Use for all paragraphs, labels, small text, and UI controls. Provides clean, geometric contrast against the classic serif headings.",
+      "scales": {
+        "base": "text-base leading-relaxed",
+        "small": "text-sm",
+        "labels": "text-xs uppercase tracking-[0.2em] font-medium"
+      }
+    }
+  },
+  "colors": {
+    "palette_name": "Organic & Earthy (Warm Neutrals)",
+    "description": "Like a high-end ceramic studio or a boutique law firm. Warm, trustworthy, extremely minimal.",
+    "background": {
+      "default": "#FAF9F7",
+      "surface": "#FFFFFF",
+      "surface_hover": "#F4F2EE"
+    },
+    "text": {
+      "primary": "#292725",
+      "secondary": "#706D69",
+      "disabled": "#A6A39E"
+    },
+    "border": {
+      "default": "#E6E4E0",
+      "focus": "#8C7A6B"
+    },
+    "primary": {
+      "default": "#292725",
+      "hover": "#423E3B",
+      "foreground": "#FFFFFF"
+    },
+    "accent": {
+      "default": "#8C7A6B",
+      "hover": "#78685A",
+      "foreground": "#FFFFFF"
+    },
+    "status": {
+      "success": "#4A5D4E",
+      "warning": "#C2A991",
+      "error": "#9E4747"
+    }
+  },
+  "visual_enhancers": {
+    "surface_strategy": "The Tactile Variant",
+    "shadows": {
+      "ambient": "shadow-[0_4px_24px_rgba(41,39,37,0.04)]",
+      "interactive": "shadow-[0_8px_32px_rgba(41,39,37,0.08)]"
+    },
+    "borders": {
+      "radius": "rounded-xl",
+      "style": "1px solid #E6E4E0. Ensure crisp edges to ground the soft shadows."
+    },
+    "overlays": {
+      "glass": "backdrop-blur-xl bg-white/70 border-b border-black/5. CRITICAL: Never use pure transparent backgrounds for overlapping content."
+    }
+  },
+  "layouts": {
+    "alignment": "Left-aligned layouts for forms, text, and dense content. Avoid center-everything disease.",
+    "spacing": "Generous spacing. Use p-8 or p-12 for main cards. Containers with borders must have internal padding (p-8) to prevent text collision.",
+    "grid": {
+      "bento_rules": "Use grid-cols-1 md:grid-cols-12 with wide gaps (gap-8).",
+      "booking_page": "Mobile-first structure. Left-aligned host info card on desktop, with a vertically scrolling list of available days (not a generic grid calendar) on the right."
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "Solid dark (#292725), rounded-full or rounded-xl, crisp edges. Hover states must have a slight lift (-translate-y-0.5) and shadow.",
+      "secondary": "Outline button with #E6E4E0 border, text #292725, transparent background. Hover: bg-#F4F2EE."
+    },
+    "inputs": {
+      "style": "Shadcn standard but customized to remove default blue rings. Use border-[#E6E4E0] with focus:ring-[#8C7A6B]. Background #FFFFFF.",
+      "labels": "Manrope, text-sm, text-[#706D69], mb-2 block."
+    },
+    "calendar": {
+      "style": "Shadcn calendar. Remove harsh borders. Use soft rounded-lg corners for selected dates with #292725 background."
+    },
+    "cards": {
+      "booking_slot": "Flat background (#FFFFFF), 1px subtle border (#E6E4E0), text-left. Hover: border-[#8C7A6B] bg-[#F4F2EE]."
+    },
+    "dialogs": {
+      "style": "Shadcn dialog. Use #FFFFFF surface with heavy ambient shadow. Backdrop must be bg-black/40 backdrop-blur-sm."
+    }
+  },
+  "motion": {
+    "hover_states": "All interactive elements need micro-animations. transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease.",
+    "entrance": "Staggered fade-up for booking slots in the list.",
+    "constraints": "Exclude transforms from universal transitions (transition: all). Use specific properties."
+  },
+  "accessibility": {
+    "contrast": "Ensure minimum 4.5:1 ratio for normal text. Use APCA contrast guidelines. Text over buttons must be #FFFFFF.",
+    "focus": "All focusable elements must have visible focus rings (focus:ring-2 focus:ring-[#8C7A6B] focus:outline-none).",
+    "testing": "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., data-testid='login-form-submit-button', data-testid='booking-slot-10am')."
+  },
+  "media": {
+    "images": [
+      {
+        "url": "https://images.unsplash.com/photo-1563253746-350a0a877afa?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwyfHx3YXJtJTIwbWluaW1hbCUyMHdvcmtzcGFjZXxlbnwwfHx8fDE3ODcyMTM4Mjl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Warm minimal workspace for login/signup split-screen background.",
+        "category": "auth_background"
+      },
+      {
+        "url": "https://images.pexels.com/photos/7916015/pexels-photo-7916015.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Intricate sandy earth texture for subtle section backgrounds or empty states.",
+        "category": "texture_overlay"
+      }
+    ],
+    "icons": "lucide-react (default). Use simple, line-based icons."
+  },
+  "instructions_to_main_agent": [
+    "CRITICAL: Generate pure JavaScript (.jsx/.js) files, absolutely NO TypeScript (.tsx/.ts).",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Always use 'sonner' for toasts (located in /app/src/components/ui/sonner.jsx).",
+    "Do NOT center align the app container (.App { text-align: center; } is banned). Left-align reading content naturally.",
+    "Do NOT use HTML-based components for advanced interactions. Use Shadcn for Select, Dialog, Calendar.",
+    "Include data-testid on every button, link, and form input.",
+    "Never use purely transparent backgrounds on headers or sticky elements; always use backdrop-blur and semi-transparent colors."
+  ]
+}

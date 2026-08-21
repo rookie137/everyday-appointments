@@ -1,0 +1,43 @@
+{
+  "summary": "RETEST of the 3 fixes from iteration_2 plus regression sweep. Backend: updated /app/backend/tests/backend_test.py (admin email now read from backend/.env SUPER_ADMIN_EMAIL, removed the locally-signed-JWT fallback, added assertions on the admin object) — 36/36 pytest cases pass. Verified POST /api/auth/admin/login returns 200 with token + {email, role:'admin'} for admin@everyday-appointments.app / admin1234 and 401 (not 422) for a wrong password. Frontend (Playwright, public URL): (1) /admin/login with new credentials navigates to /admin, stats (1 clinic / 7 patients / 21 bookings / 1 upcoming) and both tabs render; wrong password shows 'Invalid credentials'. (2) Mobile 390x844 clinic ledger — .ledger-head is display:none, rows render as 3-column grid (56px token, name+meta+status pill, status select), no element overlap (measured child boxes: token x=31 w=56, name x=99, action x=187 w=172), no horizontal overflow (scrollWidth 356 = clientWidth). (3) /patient/my-bookings — after cancel, item moves out of Upcoming into Past with 'റദ്ദാക്കി' pill (upcoming 1->0, past 0->1) and persists across reload. Regression passed: patient OTP -> clinic -> date/slot -> confirm -> receipt token #3 with valid https://wa.me/919876543210 link; clinic email OTP -> ledger -> walk-in creation -> status select persists (in_consultation after reload) -> settings page reachable on mobile; admin add+delete clinic and add+delete holiday all reflected in the list; Sunday/holiday auto-block on /api/clinics/{id}/slots covered by passing pytest cases (test_slots_sunday_closed, test_slots_holiday, book-on-sunday/holiday rejected).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/admin/login", "issue": "Auth-playbook deviations remain (pre-existing, MVP by design): password compared in plain text against SUPER_ADMIN_PASSWORD env (no bcrypt $2b$ hash, no admin document/seed_admin), token returned in JSON instead of httpOnly cookie, and no brute-force lockout — 6 consecutive wrong passwords all return 401 with no throttling."},
+      {"endpoint": "CORS middleware (server.py:703)", "issue": "allow_origins=['*'] + allow_origin_regex='.*' with allow_credentials=True; invalid for credentialed requests. Harmless today because the app uses Bearer tokens, but should read explicit origins from CORS_ORIGINS."},
+      {"endpoint": "DELETE /api/admin/clinics/{id}, DELETE /api/admin/holidays/{id}", "issue": "Still returns {ok:true} for unknown ids (no 404); deleting a clinic still leaves its appointments orphaned. Carried over from iteration_2, not in this retest scope."},
+      {"endpoint": "GET /api/clinic/appointments", "issue": "token_number still derived from slot index rather than the stored appointment token (carried over from iteration_2)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Clinic ledger @390px", "issues": ["Fix works (no overlap), but column balance is off: the status <select> auto-column measures 172px (its Malayalam max-content) leaving only ~76px for the patient name, so a normal-length name wraps to 3 lines. Suggest grid-template-columns: 56px 1fr 120px with the select given max-width/overflow ellipsis, or move the select to its own row.", "Status is still shown twice per row (pill under the name + the select value)."]},
+      {"screen": "TopBar on mobile (clinic ledger, settings, my-bookings)", "issues": ["Sticky header title truncated to a couple of glyphs ('ഇന്നത്തെ ...', '(ക...', 'എ...') — carried over from iteration_2, still unfixed."]},
+      {"screen": "Clinic ledger / admin holiday modal", "issues": ["Uses the browser-native <input type=date> picker instead of a shadcn calendar component."]},
+      {"screen": "Patient my-bookings", "issues": ["Cancel uses window.confirm() native dialog instead of a shadcn AlertDialog (also silently blocks automated tests that auto-dismiss dialogs)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Optional polish: rebalance the mobile ledger grid so the status select does not squeeze the patient name to ~76px (grid-template-columns: 56px 1fr 120px).",
+    "Optional polish: TopBar mobile title truncation (still shows 2-3 glyphs).",
+    "Carried over (out of retest scope): 404 on delete of unknown clinic/holiday ids, orphaned appointments on clinic delete, stable stored token_number in ledger.",
+    "Testability: data-testid cancel-{idx} in MyBookings is index-based and duplicated between the Upcoming and Past sections — prefix with the section kind (cancel-upcoming-{idx})."
+  ],
+  "critical_code_review_comments": [
+    "AdminLogin.email is now plain str with a lowercase comparison against SUPER_ADMIN_EMAIL — correct fix; 401 is now returned before any validation error path.",
+    "MyBookings past filter (a.status === 'cancelled' || a.date < today) with `await load()` after cancel is correct and idempotent; no stale local state observed.",
+    "App.css mobile ledger uses grid-template-areas with nth-child targeting — brittle if the row's child order ever changes; consider explicit class names per cell.",
+    "Super-admin identity is env-only with a plaintext password compare; document this as an accepted MVP tradeoff or move to a bcrypt-hashed seeded admin doc."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (36/36)", "frontend": "100% of retested flows (3 fixes + patient/clinic/admin regression)"},
+  "seed_data_creation": "Walk-in patients TEST_Mobile Row One Longname (+919999988801, token #1, status set to in_consultation) and TEST_Row2 (+919999988802, token #2) on today's demo-clinic ledger; patient +919999966077 'TEST_Retest Patient' with one booking (token #3) that was cancelled; TEST_UI Clinic and TEST_UI Holiday (2026-11-19) created and deleted via the admin UI. The two walk-ins on today's ledger cannot be removed via any API and remain in the demo clinic ledger.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Super admin admin@everyday-appointments.app / admin1234 (WORKS); demo clinic demo@clinic.example.com with mocked demo_otp; patients created at runtime.",
+  "context_for_next_testing_agent": "All 3 reported fixes are verified working. Run backend suite with: cd /app/backend && python -m pytest tests/backend_test.py -v -n 0 (use -n 0; TestClinicAdmin mutates the shared demo clinic settings while TestPatientBooking books slots). ADMIN_EMAIL in the test file is read from backend/.env. When testing MyBookings cancel with Playwright you MUST register page.on('dialog', lambda d: d.accept()) — cancel is gated by window.confirm and Playwright auto-dismisses it (this caused a false negative in my first run). Ledger rows only exist for dates with bookings — create walk-ins first when testing the mobile ledger. Still not covered: patient booking on a day with a custom break window, clinic PATCH of name/doctor via the settings save button, multi-clinic patient flows.",
+  "rca_of_the_issue": "iteration_2 blocker root cause was Pydantic EmailStr rejecting the reserved .local TLD before admin_login() executed. Fix applied on both sides (email: str + SUPER_ADMIN_EMAIL=admin@everyday-appointments.app) and verified: 200 for valid creds, 401 for wrong password, frontend reaches /admin dashboard. The mobile ledger fix works via .ledger-head{display:none} + grid-template-areas at <=720px; the my-bookings fix works via the cancelled-inclusive past filter with an awaited reload."
+}

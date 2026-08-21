@@ -1,0 +1,51 @@
+{
+  "summary": "Full backend + frontend test of Everyday Appointments. Backend: created /app/backend/tests/backend_test.py (36 tests) covering public endpoints, slot engine (weekday/Sunday/holiday), patient OTP + booking/conflict/cancel/rebook, clinic OTP + settings persistence + ledger + walk-in + status transitions + emergency cancel, super-admin clinics/holidays/stats CRUD and role authorization — 34 passed, 2 failed. Frontend: verified landing + language toggle persistence, full patient flow (OTP -> clinic list -> date/slot grid -> confirm -> receipt with wa.me link -> my-bookings -> cancel), full clinic flow (OTP login -> ledger -> walk-in -> status select persistence -> emergency cancel with per-patient WA buttons -> Sunday/holiday banners -> settings save+persist), and admin dashboard (stats, clinics tab add/delete, holidays tab add/delete) using an injected JWT because admin login is broken. ONE CRITICAL BLOCKER: POST /api/auth/admin/login always returns 422 — Pydantic EmailStr rejects the seeded SUPER_ADMIN_EMAIL 'admin@everydayappointments.local' (.local is a reserved TLD), so the Super Admin can never log in through the UI or API.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/auth/admin/login", "issue": "Always 422 for the documented credential admin@everydayappointments.local / admin1234. AdminLogin.email is Pydantic EmailStr and email-validator rejects the special-use '.local' TLD ('value is not a valid email address: The part after the @-sign is a special-use or reserved name'). Super Admin login is impossible from UI and API; wrong-password case also returns 422 instead of 401. Fix by relaxing the field (email: str + manual compare) or changing SUPER_ADMIN_EMAIL to a real TLD in backend/.env and /app/memory/test_credentials.md.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "GET /api/clinic/appointments (ledger) / POST /api/patient/book", "issue": "token_number is derived from the slot index of the current settings, not stored/stable. After a clinic changes start_time or slot_duration, the ledger token shown (view slot index) diverges from the token_number stored on the appointment and printed on the patient receipt — patients can arrive with a token number the clinic no longer shows."},
+      {"endpoint": "DELETE /api/admin/clinics/{id}, DELETE /api/admin/holidays/{id}", "issue": "Returns {ok:true} even when the id does not exist / is malformed (invalid ObjectId raises unhandled bson error path); no 404. Also deleting a clinic leaves its appointments orphaned."},
+      {"endpoint": "POST /api/auth/admin/login", "issue": "Super admin password is compared in plain text against SUPER_ADMIN_PASSWORD env (no bcrypt hash, no failed-attempt lockout, token in JSON not httpOnly cookie). Acceptable for the mocked-OTP MVP design but does not meet the auth playbook checks (bcrypt $2b$, httpOnly cookie, 5-attempt lockout, explicit CORS origins — CORS currently allow_origins=['*'] with allow_credentials=True, which browsers reject for credentialed requests)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "admin/Login.jsx", "issue": "Login with documented super-admin credentials fails; toast shows raw Pydantic message 'value is not a valid email address: The part after the @-sign is a special-use or reserved name...'. Dashboard unreachable without token injection.", "selector": "[data-testid=\"admin-submit\"]", "priority": "CRITICAL"},
+      {"component": "clinic/Dashboard.jsx ledger header", "issue": "At 390px the ledger header cells overlap each other: measured 'ടോക്കൺ' and 'രോഗിയുടെ പേര്' both at x=33 and 'സമയം' and 'ചെയ്യുക' both at x=100, producing garbled unreadable header text ('ടോക്കൺസമയം' / 'രോഗിയുടെ പേര്' over 'ചെയ്യുക'). Hidden columns (സ്ഥലം, ഫോൺ) still render with width 0 instead of being removed. Renders correctly at >=768px. This is the main mobile-first defect.", "selector": "[data-testid=\"ledger-table\"]", "priority": "HIGH"},
+      {"component": "patient/MyBookings.jsx", "issue": "After cancelling, the booking stays in the 'Upcoming' section with a 'cancelled' badge instead of moving to past/cancelled — confusing for patients.", "selector": "[data-testid=\"booking-upcoming-0\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Super admin login -> dashboard", "issue": "Blocked end-to-end by the 422 backend validation error; dashboard verified only by injecting a manually signed admin JWT into localStorage ea_token.", "affected_selectors": ["[data-testid=\"admin-submit\"]", "[data-testid=\"tab-clinics\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Clinic ledger + Admin dashboard (390px)", "issues": ["Page title truncated to 'ഇന്നത്തെ ...' / 'പ്ലാറ്റ്ഫോം ...' in the sticky header", "Toolbar wraps so the Settings link (ml-auto) lands alone on its own right-aligned row, and 'Add clinic' button likewise — looks unaligned", "Ledger row duplicates status (select value + badge) inside a narrow card"]},
+      {"screen": "Toasts (all pages)", "issues": ["Sonner top-center toast overlays the sticky header/first row of content on mobile; stale 'OTP അയച്ചു' toast still covering content several steps later in the flow"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "CRITICAL: make POST /api/auth/admin/login accept admin@everydayappointments.local (change AdminLogin.email to str, or switch SUPER_ADMIN_EMAIL to a valid TLD and update /app/memory/test_credentials.md); ensure wrong password returns 401 not 422",
+    "Fix clinic ledger header/row grid at mobile widths (<640px) — header cells currently overlap and are unreadable",
+    "Move cancelled bookings out of the patient 'Upcoming' list",
+    "Persist/return the stored appointment token_number in the clinic ledger so tokens don't shift when clinic settings change",
+    "Return 404 for delete of unknown clinic/holiday ids and handle appointments orphaned by clinic deletion",
+    "Reduce toast overlap with the sticky header (offset or dismiss on navigation)"
+  ],
+  "critical_code_review_comments": [
+    "server.py: AdminLogin uses EmailStr while SUPER_ADMIN_EMAIL uses the reserved .local TLD — validation error precedes any credential check, making login unreachable; validation-error 422 also leaks raw Pydantic messages to end users.",
+    "build_day_view computes token numbers from slot position, so token identity is not stable across settings changes; store token_number on the appointment and read it back in the ledger.",
+    "CORS uses allow_origins=['*'] plus allow_origin_regex='.*' with allow_credentials=True — redundant and invalid for credentialed requests; use CORS_ORIGINS from .env.",
+    "Emergency cancel/status endpoints have no audit trail (cancelled_at / cancelled_by) — hard to explain cancellations later.",
+    "Super admin identity is env-only ('sub':'super'); no rotation/lockout. Fine for MVP but document it."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "94% (34/36 tests)", "frontend": "90% (patient, clinic, admin dashboard flows pass; admin login flow fails)"},
+  "seed_data_creation": "Test patients +919999900001/2/10-12, +919999911223 (UI); walk-in patients +919999977001/+919999977333; TEST_ clinics and TEST_UI Holiday created and deleted during tests. Demo clinic settings were modified then restored to defaults (09:00-17:00, 15 min, 45 advance days, Mon-Sat, 13:00-14:00 break).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Super admin admin@everydayappointments.local / admin1234 (currently rejected by backend validation); demo clinic demo@clinic.example.com with mocked demo_otp; patients created at runtime.",
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/backend_test.py -v (use -n 0 if flaky — TestClinicAdmin mutates the shared demo clinic settings while TestPatientBooking books slots, which caused one cross-worker flake under the default -n 2). The admin_token fixture falls back to a locally signed JWT (JWT_SECRET from backend/.env) while admin login is broken; remove that fallback once login is fixed. Frontend admin dashboard was validated by injecting that JWT into localStorage 'ea_token'. Not yet covered: patient booking on a day with a custom break window, clinic PATCH of name/doctor via settings page, multi-clinic patient flows.",
+  "rca_of_the_issue": "SUPER_ADMIN_EMAIL='admin@everydayappointments.local' is validated by Pydantic EmailStr (email-validator), which rejects reserved/special-use TLDs like .local. FastAPI therefore returns 422 before admin_login() runs, so every super-admin login attempt fails regardless of password. Reproduce: curl -X POST $REACT_APP_BACKEND_URL/api/auth/admin/login -H 'Content-Type: application/json' -d '{\"email\":\"admin@everydayappointments.local\",\"password\":\"admin1234\"}' -> 422. All /api/admin/* endpoints themselves work correctly when given a valid admin JWT (verified)."
+}
