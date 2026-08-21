@@ -144,6 +144,24 @@
 .ea-fade { animation: eaFade 0.35s ease both; }
 @keyframes eaFade { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
 
+/* Print-only + print styles for clinic ledger */
+.print-only { display: none; }
+@media print {
+  body { background: #fff !important; }
+  .no-print, header.sticky, .sticky, [data-testid="topbar-title"] ~ *, [data-testid="topbar-logout"], [data-testid="topbar-back"] { display: none !important; }
+  header { display: none !important; }
+  .print-only { display: block; }
+  .ea-card { box-shadow: none !important; border: 1px solid #333 !important; }
+  .ledger-head { display: grid !important; background: #f0f0f0 !important; }
+  .ledger-row { display: grid !important; grid-template-columns: 60px 90px 1fr 100px 140px !important; padding: 0.5rem 0.75rem !important; page-break-inside: avoid; }
+  .ledger-row > *:nth-child(6) { display: none !important; }
+  .ledger-row .col-hide-sm { display: block !important; }
+  .status-pill { border: 1px solid #666; }
+  .ea-btn, .ea-btn-primary, .ea-btn-secondary, .ea-btn-danger, .ea-btn-wa { display: none !important; }
+  .Toaster, [data-sonner-toaster] { display: none !important; }
+  @page { margin: 12mm; }
+}
+
 /* Day chip strip */
 .day-chip {
   padding: 0.6rem 0.85rem;

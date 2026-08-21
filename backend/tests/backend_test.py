@@ -212,6 +212,54 @@ class TestPatientAuth:
         assert r.status_code == 200
         assert r.json()["role"] == "patient"
 
+    # --- feature: returning-patient reuse (request-otp shape) ---
+    def test_request_otp_new_phone_not_returning(self, client):
+        phone = f"+9198777{random.randint(10000, 99999)}"
+        r = client.post(f"{API}/auth/patient/request-otp", json={"phone": phone})
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["is_returning"] is False
+        assert d["known_name"] is None
+        assert d["known_place"] is None
+        assert d["phone"] == phone
+
+    def test_request_otp_returning_phone_returns_known_fields(self, client, patient_a):
+        r = client.post(f"{API}/auth/patient/request-otp", json={"phone": "+919999900001"})
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["is_returning"] is True
+        assert d["known_name"] == "Test Patient"
+        assert isinstance(d["known_place"], str)
+        assert len(d["demo_otp"]) == 6
+
+    def test_verify_returning_patient_without_name(self, client, patient_a):
+        phone = "+919999900001"
+        otp = client.post(f"{API}/auth/patient/request-otp", json={"phone": phone}).json()["demo_otp"]
+        r = client.post(f"{API}/auth/patient/verify-otp", json={"phone": phone, "code": otp})
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["token"]
+        assert d["patient"]["phone_number"] == phone
+        # existing name preserved, not wiped
+        assert d["patient"]["name"] == "Test Patient"
+        assert "_id" not in d["patient"]
+
+    def test_returning_flag_flips_after_registration(self, client):
+        phone = f"+9198666{random.randint(10000, 99999)}"
+        first = client.post(f"{API}/auth/patient/request-otp", json={"phone": phone}).json()
+        assert first["is_returning"] is False
+        r = client.post(f"{API}/auth/patient/verify-otp", json={"phone": phone, "code": first["demo_otp"], "name": "TEST_Returning", "place": "Thalassery"})
+        assert r.status_code == 200, r.text
+        second = client.post(f"{API}/auth/patient/request-otp", json={"phone": phone}).json()
+        assert second["is_returning"] is True
+        assert second["known_name"] == "TEST_Returning"
+        assert second["known_place"] == "Thalassery"
+        # verify with no name works now
+        v = client.post(f"{API}/auth/patient/verify-otp", json={"phone": phone, "code": second["demo_otp"]})
+        assert v.status_code == 200, v.text
+        assert v.json()["patient"]["name"] == "TEST_Returning"
+
+
 
 # ---------- module: patient booking ----------
 class TestPatientBooking:

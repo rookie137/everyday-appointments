@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import TopBar from "@/components/TopBar";
-import { useLang, buildCancelMessage } from "@/lib/i18n";
+import { useLang, buildCancelMessage, buildMorningReminderMessage } from "@/lib/i18n";
 import { api, formatApiError } from "@/lib/api";
 import { toast } from "sonner";
-import { Settings2, UserPlus, AlertTriangle } from "lucide-react";
+import { Settings2, UserPlus, AlertTriangle, Printer, Sunrise } from "lucide-react";
 
 function todayIso() { return new Date().toISOString().slice(0, 10); }
 function mapStatusKey(s) {
@@ -68,12 +68,23 @@ export default function ClinicDashboard() {
     <div className="min-h-screen bg-[#F8F5EF]">
       <TopBar title={t("todays_ledger")} />
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 ea-fade">
-        <div className="flex flex-wrap items-center gap-3 mb-4">
+        {/* Print-only header */}
+        <div className="print-only mb-4">
+          <p className="font-bold text-2xl">{clinic?.name}</p>
+          <p className="text-sm">{clinic?.doctor_name} · {clinic?.place}</p>
+          <p className="text-sm">{t("date")}: {date}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 mb-4 no-print">
           <input type="date" data-testid="ledger-date" value={date} onChange={(e)=>setDate(e.target.value)} className="ea-input" style={{ maxWidth: 200 }} />
           <button data-testid="btn-walk-in" onClick={()=>setWalkIn({ ...walkIn, open: true })} className="ea-btn ea-btn-secondary"><UserPlus size={18} /> {t("walk_in")}</button>
+          <button data-testid="btn-print" onClick={()=>window.print()} className="ea-btn ea-btn-secondary"><Printer size={18} /> {t("print_ledger")}</button>
           <button data-testid="btn-emergency-cancel" onClick={runEmergencyCancel} className="ea-btn ea-btn-danger"><AlertTriangle size={18} /> {t("emergency_cancel")}</button>
           <Link to="/clinic/settings" data-testid="link-settings" className="ea-btn ea-btn-secondary ml-auto"><Settings2 size={18} /> {t("settings")}</Link>
         </div>
+
+        {view?.status === "open" && (
+          <MorningReminderCard clinic={clinic} date={date} ledger={view.ledger || []} t={t} />
+        )}
 
         {view?.status === "closed" && <div className="ea-card p-6 text-[#5A5850]" data-testid="closed-day">{t("sunday_closed")}</div>}
         {view?.status === "holiday" && <div className="ea-card p-6" data-testid="holiday-day"><p className="font-bold">{t("holiday")}</p><p className="text-[#5A5850]">{view.holiday_name}</p></div>}
@@ -167,6 +178,38 @@ function Modal({ children, title, onClose }) {
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+function MorningReminderCard({ clinic, date, ledger, t }) {
+  if (!clinic) return null;
+  const count = ledger.length;
+  const firstTime = ledger.length > 0 ? ledger[0].time : null;
+  const appUrl = window.location.origin + "/clinic";
+  const message = buildMorningReminderMessage({
+    clinicName: clinic.name, date, count, firstTime, appUrl,
+  });
+  const wa = (clinic.whatsapp_number || "").replace(/\D/g, "");
+  const waUrl = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(message)}` : "";
+  return (
+    <div className="ea-card p-4 sm:p-5 mb-4 no-print flex flex-col sm:flex-row items-start sm:items-center gap-3" data-testid="morning-reminder">
+      <div className="rounded-2xl bg-[#FFF4D6] text-[#6B4A00] p-3">
+        <Sunrise size={26} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold">{t("morning_reminder")}</p>
+        <p className="text-sm text-[#5A5850]">
+          {count === 0 ? t("morning_reminder_sub") : `${count} · ${firstTime || ""}`}
+        </p>
+      </div>
+      {waUrl ? (
+        <a data-testid="morning-reminder-send" href={waUrl} target="_blank" rel="noopener noreferrer" className="ea-btn ea-btn-wa" style={{ minHeight: 48, fontSize: "0.95rem" }}>
+          {t("send_reminder")}
+        </a>
+      ) : (
+        <p className="text-xs text-[#B2402A]" data-testid="morning-reminder-no-wa">Set WhatsApp number in Settings</p>
+      )}
     </div>
   );
 }

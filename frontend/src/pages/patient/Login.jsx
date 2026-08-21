@@ -5,7 +5,7 @@ import { useLang } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { api, formatApiError } from "@/lib/api";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, UserCheck } from "lucide-react";
 
 export default function PatientLogin() {
   const { t } = useLang();
@@ -16,8 +16,10 @@ export default function PatientLogin() {
   const [name, setName] = useState("");
   const [place, setPlace] = useState("");
   const [address, setAddress] = useState("");
-  const [step, setStep] = useState(1); // 1=phone,2=otp+details
+  const [step, setStep] = useState(1);
   const [demoOtp, setDemoOtp] = useState("");
+  const [isReturning, setIsReturning] = useState(false);
+  const [knownName, setKnownName] = useState("");
   const [busy, setBusy] = useState(false);
 
   const requestOtp = async () => {
@@ -26,6 +28,12 @@ export default function PatientLogin() {
     try {
       const { data } = await api.post("/auth/patient/request-otp", { phone });
       setDemoOtp(data.demo_otp);
+      setIsReturning(!!data.is_returning);
+      setKnownName(data.known_name || "");
+      if (data.is_returning) {
+        setName(data.known_name || "");
+        setPlace(data.known_place || "");
+      }
       setStep(2);
       toast.success(t("otp_sent"));
     } catch (e) { toast.error(formatApiError(e)); }
@@ -36,7 +44,11 @@ export default function PatientLogin() {
     if (!otp.trim()) return toast.error(t("otp"));
     setBusy(true);
     try {
-      const { data } = await api.post("/auth/patient/verify-otp", { phone, code: otp, name, place, address });
+      const body = { phone, code: otp };
+      if (!isReturning) {
+        body.name = name; body.place = place; body.address = address;
+      }
+      const { data } = await api.post("/auth/patient/verify-otp", body);
       setToken(data.token, "patient", data.patient);
       nav("/patient");
     } catch (e) { toast.error(formatApiError(e)); }
@@ -74,22 +86,35 @@ export default function PatientLogin() {
                 {t("demo_otp_note")}<span className="text-xl">{demoOtp}</span>
               </div>
             )}
+            {isReturning && (
+              <div className="flex items-center gap-3 rounded-xl bg-[#E5F3EA] border-2 border-[#157F3B] p-3 text-[#157F3B]" data-testid="patient-welcome-back">
+                <UserCheck size={22} />
+                <div>
+                  <p className="font-bold">{t("welcome_back")}{knownName ? `, ${knownName}` : ""} 👋</p>
+                  <p className="text-sm opacity-80">{t("otp")} + {t("verify")}</p>
+                </div>
+              </div>
+            )}
             <div>
               <label className="ea-label">{t("otp")}</label>
               <input data-testid="patient-otp" inputMode="numeric" maxLength={6} value={otp} onChange={(e)=>setOtp(e.target.value)} className="ea-input" />
             </div>
-            <div>
-              <label className="ea-label">{t("name")}</label>
-              <input data-testid="patient-name" value={name} onChange={(e)=>setName(e.target.value)} className="ea-input" />
-            </div>
-            <div>
-              <label className="ea-label">{t("place")}</label>
-              <input data-testid="patient-place" value={place} onChange={(e)=>setPlace(e.target.value)} className="ea-input" />
-            </div>
-            <div>
-              <label className="ea-label">{t("address")}</label>
-              <textarea data-testid="patient-address" rows={2} value={address} onChange={(e)=>setAddress(e.target.value)} className="ea-input" />
-            </div>
+            {!isReturning && (
+              <>
+                <div>
+                  <label className="ea-label">{t("name")}</label>
+                  <input data-testid="patient-name" value={name} onChange={(e)=>setName(e.target.value)} className="ea-input" />
+                </div>
+                <div>
+                  <label className="ea-label">{t("place")}</label>
+                  <input data-testid="patient-place" value={place} onChange={(e)=>setPlace(e.target.value)} className="ea-input" />
+                </div>
+                <div>
+                  <label className="ea-label">{t("address")}</label>
+                  <textarea data-testid="patient-address" rows={2} value={address} onChange={(e)=>setAddress(e.target.value)} className="ea-input" />
+                </div>
+              </>
+            )}
             <button data-testid="patient-verify" disabled={busy} onClick={verify} className="ea-btn ea-btn-primary w-full">
               {busy ? "…" : t("verify")}
             </button>

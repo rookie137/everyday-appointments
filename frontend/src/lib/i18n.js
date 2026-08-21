@@ -79,6 +79,11 @@ const STRINGS = {
     ec_note: "ഓരോ രോഗിക്കും വാട്ട്സ്ആപ്പ് സന്ദേശം അയക്കാൻ ബട്ടൺ കാണിക്കും.",
     send_wa_msg: "WA സന്ദേശം",
     affected_patients: "ബാധിച്ച രോഗികൾ",
+    print_ledger: "പ്രിന്റ് ചെയ്യുക",
+    morning_reminder: "രാവിലത്തെ ഓർമ്മപ്പെടുത്തൽ",
+    morning_reminder_sub: "ഇന്നത്തെ ബുക്കിംഗുകൾ WhatsApp വഴി അയക്കുക",
+    send_reminder: "ഓർമ്മപ്പെടുത്തൽ അയക്കുക",
+    welcome_back: "സ്വാഗതം",
     // Days
     mon: "തിങ്കൾ", tue: "ചൊവ്വ", wed: "ബുധൻ", thu: "വ്യാഴം", fri: "വെള്ളി", sat: "ശനി", sun: "ഞായർ",
     // Admin
@@ -165,6 +170,11 @@ const STRINGS = {
     ec_note: "You'll get a WhatsApp button per patient to notify them one by one.",
     send_wa_msg: "WA message",
     affected_patients: "Affected patients",
+    print_ledger: "Print",
+    morning_reminder: "Morning reminder",
+    morning_reminder_sub: "Send today's bookings summary over WhatsApp",
+    send_reminder: "Send reminder",
+    welcome_back: "Welcome back",
     mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
     clinics: "Clinics",
     holidays: "Holidays",
@@ -213,4 +223,22 @@ export function buildCancelMessage({ clinicName, date, patientName, time, token 
     `${clinicName} ന്റെ ${date} തീയതിയിലെ അപ്പോയിന്റ്‌മെന്റ് (സമയം ${time}, ടോക്കൺ #${token}) റദ്ദാക്കിയിരിക്കുന്നു.`,
     "അസൗകര്യത്തിന് ക്ഷമിക്കണം. പുതിയ സമയം വേണമെങ്കിൽ ബുക്ക് ചെയ്യുക.",
   ].join("\n");
+}
+
+// Morning reminder WA message for clinic staff
+export function buildMorningReminderMessage({ clinicName, date, count, firstTime, appUrl }) {
+  if (!count || count === 0) {
+    return [
+      `🌅 സുപ്രഭാതം ${clinicName}!`,
+      `${date} — ഇന്ന് ബുക്കിംഗുകൾ ഇല്ല.`,
+      appUrl ? `App: ${appUrl}` : "",
+    ].filter(Boolean).join("\n");
+  }
+  return [
+    `🌅 സുപ്രഭാതം ${clinicName}!`,
+    `${date} — ഇന്ന് ${count} രോഗികൾ ബുക്ക് ചെയ്തിട്ടുണ്ട്.`,
+    firstTime ? `ആദ്യത്തെ ടോക്കൺ: ${firstTime}` : "",
+    "ആപ്പ് തുറന്ന് ടോക്കൺ ചെക്ക് ചെയ്യുക.",
+    appUrl ? `Open: ${appUrl}` : "",
+  ].filter(Boolean).join("\n");
 }

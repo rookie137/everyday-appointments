@@ -1,0 +1,36 @@
+{
+  "summary": "Tested the 3 enhancements (print ledger, morning reminder wa.me card, returning-patient reuse) plus regression. Backend: extended /app/backend/tests/backend_test.py with 4 new returning-patient tests; full suite 40/40 passed (pytest -n 0). Frontend (Playwright, public preview URL): new-phone signup still shows name/place/address and registers; returning phone shows 'സ്വാഗതം, <name>' welcome-back banner with name/place/address hidden and verifies with OTP only -> /patient; clinic dashboard btn-print present, clickable and calls window.print() exactly once; print media emulation confirmed (.no-print + header + morning-reminder hidden, .print-only clinic header visible, ledger table visible); morning-reminder card renders with wa.me href containing URL-encoded 'സുപ്രഭാതം', booking count (2) and first token time (09:00), target=_blank. Regression verified: clinic ledger status update (waiting -> completed persisted), walk-in modal, language toggle (Malayalam <-> English), admin login + dashboard stats/tabs/clinic CRUD rows, patient booking slot selection & confirm bar. No console errors, no error elements on any tested page.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/admin/login", "issue": "Super-admin password is compared in plaintext against SUPER_ADMIN_PASSWORD env (no bcrypt hash, no constant-time compare, no brute-force lockout). bcrypt hash_pw/verify_pw helpers exist but are unused for the admin path. Playbook checks (bcrypt $2b$ hash, httpOnly cookie, 5-fail lockout) do not apply to this OTP/bearer-token design — flagging as a security gap, not a functional failure."},
+      {"endpoint": "CORS middleware", "issue": "allow_origins=[\"*\"] combined with allow_credentials=True is invalid per the CORS spec (browsers reject credentialed wildcard). Harmless today because auth is Bearer-token, but should be an explicit origin list."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Clinic dashboard", "issues": ["Sonner toast renders centered over the TopBar title, partially covering 'ഇന്നത്തെ ലെഡ്ജർ' right after login/actions", "Settings link uses ml-auto inside a flex-wrap toolbar, so on 1920px it wraps to its own second row leaving a large gap under the toolbar", "Ledger date uses native <input type=\"date\"> browser picker instead of a styled calendar component (acceptable for the low-literacy audience, but inconsistent with the rest of the design system)"]},
+      {"screen": "Print output", "issues": ["Printed ledger drops the status column entirely (action select is the only status carrier), so the paper ledger has no waiting/completed info — consider a print-only status text column"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Optional: hash the super-admin password with bcrypt and add failed-attempt throttling on /api/auth/admin/login",
+    "Optional: replace CORS allow_origins=[\"*\"] with an explicit origin list since allow_credentials=True",
+    "Optional design polish: toast position over TopBar title; toolbar wrap of the Settings link; print-only status column"
+  ],
+  "critical_code_review_comments": [
+    "MorningReminderCard derives firstTime from ledger[0].time (lowest token) regardless of status; verified ledger excludes cancelled slots so the count is correct, but a completed/no-show first token will still be advertised as 'first token'. Acceptable for a morning message — noting only.",
+    "server.py is 718 lines; consider splitting routers (auth / clinic / admin / public) before it grows further."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Runtime patients on ephemeral phones (+9198555xxxxx TEST_UIReturning, +9198666xxxxx TEST_Returning, +9198777xxxxx) and a TEST_WalkIn walk-in on today's demo-clinic ledger (token status set to completed during regression).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Super admin admin@everyday-appointments.app / admin1234 (works, testids: admin-email, admin-password, admin-submit — note NOT admin-login-submit). Demo clinic demo@clinic.example.com via mocked demo_otp. Returning patient +919999900001 (name 'Test Patient').",
+  "context_for_next_testing_agent": "All 3 enhancements verified working end-to-end; no blocking issues. Backend suite: cd /app/backend && python -m pytest tests/backend_test.py -v -n 0 (must use -n 0). New tests live in TestPatientAuth (test_request_otp_new_phone_not_returning, test_request_otp_returning_phone_returns_known_fields, test_verify_returning_patient_without_name, test_returning_flag_flips_after_registration). For print testing use await page.emulate_media(media='print') + getComputedStyle checks instead of screenshots, and stub window.print via page.evaluate to assert the click. Correct testids: admin-submit, clinic-<id> (patient home clinic cards), slot-<time>, date-<iso>. Cancel flows need page.on('dialog', d.accept()). Not covered this round: MyBookings cancel re-test, clinic settings break-window edits, mobile (390px) view of the new morning-reminder card.",
+  "rca_of_the_issue": "N/A — no defects reproduced. Two initial Playwright failures were my own selector mistakes (admin-login-submit vs admin-submit, clinic-card-* vs clinic-*) and were corrected in the re-run."
+}

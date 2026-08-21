@@ -286,8 +286,15 @@ async def patient_request_otp(body: PatientOtpReq):
         upsert=True,
     )
     logger.info(f"[OTP MOCK] patient {phone} => {code}")
-    # For demo/MVP: return OTP so users without SMS provider can verify.
-    return {"sent": True, "demo_otp": code, "phone": phone}
+    existing = await db.patients.find_one({"phone_number": phone})
+    return {
+        "sent": True,
+        "demo_otp": code,
+        "phone": phone,
+        "is_returning": bool(existing),
+        "known_name": existing.get("name") if existing else None,
+        "known_place": existing.get("place") if existing else None,
+    }
 
 @api.post("/auth/patient/verify-otp")
 async def patient_verify_otp(body: PatientOtpVerify):
